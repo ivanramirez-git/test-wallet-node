@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: soap_mysql_db
+    environment:
+      MYSQL_DATABASE: soap_database
+      MYSQL_USER: soap_user
+      MYSQL_PASSWORD: MyS3cur3P4ssw0rd!
+      MYSQL_ROOT_PASSWORD: R00tP4ssw0rd!
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - soap_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  
+  mongo:
+    image: mongo:latest
+    container_name: soap_mongodb
+    environment:
+      MONGO_INITDB_DATABASE: soap_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - soap_network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  wallet-soap-node:
+    build:
+      context: ./wallet-soap-node
+      dockerfile: Dockerfile
+    container_name: wallet_soap_service
+    env_file:
+      - ./wallet-soap-node/.env.docker
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    networks:
+      - soap_network
+
+  wallet-rest-node:
+    build:
+      context: ./wallet-rest-node
+      dockerfile: Dockerfile
+    container_name: wallet_rest_api
+    env_file:
+      - ./wallet-rest-node/.env.docker
+    ports:
+      - "3001:3001"
+    depends_on:
+      - wallet-soap-node
+    networks:
+      - soap_network
+
+volumes:
+  mysql_data:
+  mongo_data:
+
+networks:
+  soap_network:
+    driver: bridge
+
+# docker-compose up -d --build
