@@ -8,7 +8,7 @@
 
 ### 1. Clonar el Repositorio
 ```bash
-git clone <url_del_repositorio>
+git clone https://github.com/ivanramirez-git/test-wallet-node.git
 cd prueba-interfell
 ```
 
